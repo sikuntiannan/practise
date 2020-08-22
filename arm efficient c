@@ -105,3 +105,4 @@ int insideRange1(int v, int min, int max)
 {
   return v >= min && v < max;两个分支
 }
+将全局变量尽可能的集中到一个数组中，这样允许通过一个指针和一个偏移来访问，而不是很多个指针来访问
