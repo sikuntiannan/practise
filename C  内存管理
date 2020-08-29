@@ -1,0 +1,51 @@
+ 这是个笔记，不是教程。
+ new (memory address) type;//在内存上调用构造函数
+ new (nothrow) type;//调用不抛异常的
+ /*
+ 当new失败抛异常之前会调用new_handler
+ 例子：
+ void f()
+ {
+ ......
+ 	abort();//如果没有这个函数，那么就会一直new,new的实现里有循环;
+ }
+ int main()
+ {
+ 	set_new_handler(f);
+ }
+ 这个例子就是：当这个程序new失败抛异常之前调用f函数。
+ */
+ typedef void (*new_handler)();
+ new_handler set_new_handler(new_handler p) throw();
+
+ void *operator new(...)=defalt //这个不可以默认
+ 同理delete
+ 但可以=delete//此时可以编译，但不能使用
+ ...new(...)=delete//这个不影响调用new[]，同理delete[]也可以
+
+ malloc：
+ cookie//八字节
+ debug header//
+ block size//用户得到的指针指向区域；内存对齐，有最大类型对齐(8)
+ debug tail
+ pad//添补，用来使整个结构16字节对齐
+ cookic
+ //以上16字节对齐
+
+ allocator内部是new
+ deallocator是delete
+ 以上两个是容器的分配器，容器有默认值；以元素为单位来声明大小<-看看源代码就知道。
+
+ 去除cookie，用户就得知道块大小 
+
+ _gun_cxx::_pool_alloc一个比较好的 allocator，标准库可能会带这个，省去了cookie；#include<ext/pool_allocator.h>
+ 一次要一大块，里面是很多链表，每条链表负责不同的大小申请。小于负责大小，就调整到最近，反之就找更大的负责链表，找不到就找malloc要
+ 未给客户的就用链表连起来，这样可以不遍历的情况下push或pop一块内存，嵌入式指针，在对象上占一点空间。当小于4字节的就不可以被占用
+ union obj
+ {
+ 	union obj *
+ }
+ 这两段式分配：先申请一大块，之后无论什么大小的申请，都尝试从这个预申请的块给予，一次给予所需（类型）的二十倍。给予的会用链表连起来
+ 内存不足时行为：拿最小的未分配的块（一般是右边的链表的块）过来用。
+ 分配器有可能引起数据竞争，因为分配的内存可能是同一个链表串这。要看看分配器的实现
+ 碎片化知识理论处理，不是绝对处理，绝对处理必然要移动已申请的内存，那就要再次映射（实际内存地址和程序知道的地址，那操作系统就要一个映射表，维护一个表的代价很大，因为内存是一个频繁读写的，读写代价从1到logN，十几倍的消耗）
