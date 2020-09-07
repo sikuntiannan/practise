@@ -3,6 +3,7 @@ project(practice VERSION 0.1.0)
 
 #在cmake 命令中加参数来控制代码的编译宏的定义
 if(OPENCV_TEST_DZ )
+#添加编译选项
     add_definitions(-DOPENCV_TEST_DZ)
     message('OPENCV_TEST_DZ的状态是："on"')
 else()
@@ -24,10 +25,10 @@ if(CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "debug")
-    message("debug")
+    message("编译类型debug")
     add_compile_options(-g )
 else()
-    message("release")
+    message("编译类型release")
     add_compile_options(-O2 )
 endif()
 
@@ -56,3 +57,20 @@ target_link_libraries(practice opencv_img_hash;opencv_world)
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
+
+
+
+
+
+
+# cmake -D CMAKE_BUILD_TYPE=RELEASE -D WITH_QT=ON \
+#     -D CMAKE_INSTALL_PREFIX=/usr/local \
+#     -D BUILD_opencv_python2=ON \
+#     -D PYTHON2_LIBRARY=/usr/local/Frameworks/Python.framework/Versions/2.7/lib/libpython2.7.dylib \
+#     -D PYTHON2_INCLUDE_DIR=/usr/local/Frameworks/Python.framework/Versions/2.7/include/python2.7 \
+#     -D PYTHON2_EXECUTABLE=/usr/local/bin/python \
+#     -D BUILD_opencv_python3=ON \
+#     -D PYTHON3_LIBRARY=/usr/local/Frameworks/Python.framework/Versions/3.6/lib/libpython3.6.dylib \
+#     -D PYTHON3_INCLUDE_DIR=/usr/local/Frameworks/Python.framework/Versions/3.6/include/python3.6m \
+#     -D PYTHON3_EXECUTABLE=/usr/local/bin/python3 ..
+# /GadNet/build$ cmake .. -DBOOST_TEST_DZ=1  有boost库，但没有OpenCV
