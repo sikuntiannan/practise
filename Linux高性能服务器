@@ -1,0 +1,101 @@
+小端字节序是主机字节序
+大端字节序是网络字节序
+有手动塞一些变量来内存对齐
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <signal.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <stdio.h>
+#include <string.h> static
+bool stop = false; /*SIGTERM信号的处理函数，触发时结束主程序中的循环*/
+static void handle_term(int sig)
+{
+	stop = true;
+}
+int main(int argc, char *argv[])
+{
+	signal(SIGTERM, handle_term); //注册信号函数
+	if (argc <= 3)
+	{
+		printf("usage:%s ip_address port_number backlog\n", basename(argv[0]));
+		return 1;
+	}
+	const char *ip = argv[1];
+	int port = atoi(argv[2]);
+	int backlog = atoi(argv[3]);
+	int sock = socket(PF_INET, SOCK_STREAM, 0); //使用TCP/IPv4协议,使用数据流；SOCK_DGRAM就是使用UDP协议
+	assert(sock > = 0);							//断言创建成功
+	struct sockaddr_in address;
+	bzero(&address, sizeof(address)); //填充这个大小的内存为零
+	address.sin_family = AF_INET;	  //设置地址族
+	inet_pton(AF_INET, ip, &address.sin_addr);
+	address.sin_port = htons(port);										//设置端口
+	int ret = bind(sock, (struct sockaddr *)&address, sizeof(address)); //把文件描述符和一个地址绑定起来。地址只设置了端口
+	assert(ret != -1);
+	ret = listen(sock, backlog); //创建一个监听队列，backlog监听的最大队列长度，既链接的数量
+	assert(ret != -1);
+	/*循环等待连接，直到有SIGTERM信号将它中断*/
+	while (!stop)
+	{
+		sleep(1);
+	}
+	/*关闭socket，见后文*/
+	close(sock);
+	return 0;
+}
+void f() throw();//不抛出任何异常
+void f() throw(type);//抛出type类型的异常
+void f() throw(...);//抛出任何类型的异常
+inet_addr() //IP地址转换函数，从字符串到in_addr_t,32位的
+inet_aton() //IP地址转换函数，从字符串到in_addr,32位的
+inet_ntoa() //IP地址转换函数，从in_addr_t到字符串；不可重入的，mysql的链接返回的数据应该也是这个方法
+	char remote[INET_ADDRSTRLEN];
+	struct sockaddr_in client;
+	socklen_t client_addrlength = sizeof(client);
+	int connfd = accept(sock, (struct sockaddr *)&client, &client_addrlength);															 //从套接字接收一个链接，返回一个文件描述符
+	printf("connected with ip:%s and port:%d\n", inet_ntop(AF_INET, &client.sin_addr, remote, INET_ADDRSTRLEN), ntohs(client.sin_port)); //打印客户IP和端口
+	close(connfd);																														 //关闭一个链接
+accept只是从监听队列里取出链接，不论链接当前的状态是什么；listen调用，处于LISTEN时期的叫监听socket，所有ESTABLISHED叫做socket链接。
+既，accept不管这个链接当前是否正常（这个链接的客户端在链接之前就挂了）
+connect(int sockfd,const struct sockaddr*serv_addr,socklen_t addrlen);//发起链接，成功后就读写sockfd
+close(int fd);//关闭链接，这个fd在产生子进程的时候会使文件描述符的引用计数器加一，所以调用close并不一定会关闭连接，仅仅是计数器减一，计数器为零的时候才会关闭。
+shutdown();//这个函数可以立即关闭链接，第二个参数决定行为。
+read和write是操作文件描述符的，所以这里也同样。
+recv()//返回0：通信对方已关闭，-1：出错；返回读到的数据长度
+send()//返回实际写入的长度，失败时返回-1                                    参数flags提供额外控制 MSG_OOB这个枚举的定义处有
+	const char *oob_data = "abc";
+	const char *normal_data = "123";
+	send(sock, oob_data, strlen(oob_data), MSG_OOB); //发送紧急额外数据
+	send(sock, normal_data, strlen(normal_data), 0); //发送普通数据，参数是0
+
+	char buffer[1024];
+	ret = recv(sock, buffer, 1024 - 1, MSG_OOB); //接受紧急额外数据
+	ret = recv(sock, buffer, 1024 - 1, 0);		 //接受普通数据，参数是0
+    紧急数据只有八位——一个char
+UDP的例子
+ssize_t recvfrom(int sockfd,void*buf,size_t len,int flags,struct sockaddr*src_addr,socklen_t*addrlen);
+ssize_t sendto(int sockfd,const void*buf,size_t len,int flags,const struct sockaddr*dest_addr,socklen_t addrlen);
+因为UDP没有连接这个概念，所以每一次读写数据都要提供目标地址sockaddr，文件描述符和端口有过一次关联，而端口和很多文件描述符有关，所以要用socket区分一次？
+两个通用的函数UDP和TCP都可以用
+ssize_t recvmsg(int sockfd,struct msghdr*msg,int flags);
+ssize_t sendmsg(int sockfd,struct msghdr*msg,int flags);
+
+int sockatmark(int sockfd);//判断是否处于外带标记状态
+获取socket的本端和远端的地址，获取sockfd对应的地址
+int getsockname(int sockfd,struct sockaddr*address,socklen_t*address_len);//本端
+int getpeername(int sockfd,struct sockaddr*address,socklen_t*address_len);//远端
+获取文件描述符的属性的通用方法
+int getsockopt(int sockfd,int level,int option_name,const void*option_value,socklen_t*restrict option_len);
+int setsockopt(int sockfd,int level,int option_name,      void*option_value,socklen_t          option_len);
+level:SOL_SOCKET、IPPROTO_IP、IPPROTO_IPV6、IPPROTO_TCP
+对监听socket设置这些socket选项，那么accept返回的连接socket将 自动继承这些选项
+有部分socket选项只能在调用listen系统调用前针对监听socket[1]设置才有效
+设置socket选项 SO_REUSEADDR来强制使用被处于TIME_WAIT状态的连接占用的socket地址
+int sock=socket(PF_INET,SOCK_STREAM,0);
+int reuse=1;
+setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof(reuse));
+也可以通过修改内核参数/proc/sys/net/ipv4/tcp_tw_recycle来快速回收被关闭的socket
+SO_RCVBUF和SO_SNDBUF选项分别表示TCP接收缓冲区和发送缓冲区的大小
