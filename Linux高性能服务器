@@ -98,4 +98,10 @@ int sock=socket(PF_INET,SOCK_STREAM,0);
 int reuse=1;
 setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof(reuse));
 也可以通过修改内核参数/proc/sys/net/ipv4/tcp_tw_recycle来快速回收被关闭的socket
-SO_RCVBUF和SO_SNDBUF选项分别表示TCP接收缓冲区和发送缓冲区的大小
+SO_RCVBUF和SO_SNDBUF选项分别表示TCP接收缓冲区和发送缓冲区的大小,系统会将其值加倍
+并且不得小于某个最小值。TCP接收缓冲区的最小值是256字节，而发送缓冲区的最小值是2048字节（不同的系统可能有不同的默认最小值）
+修改内核参数/proc/sys/net/ipv4/tcp_rmem和/proc/sys/net/ipv4/tcp_wmem来强制TCP接收缓冲区和发送缓冲区的大小没有最小值限制
+int sendbuf=atoi(argv[3]);
+int len=sizeof(sendbuf);
+setsockopt(sock,SOL_SOCKET,SO_SNDBUF,&sendbuf,sizeof(sendbuf));
+getsockopt(sock,SOL_SOCKET,SO_SNDBUF,&sendbuf,(socklen_t*)＆len);
