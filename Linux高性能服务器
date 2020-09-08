@@ -104,4 +104,4 @@ SO_RCVBUF和SO_SNDBUF选项分别表示TCP接收缓冲区和发送缓冲区的�
 int sendbuf=atoi(argv[3]);
 int len=sizeof(sendbuf);
 setsockopt(sock,SOL_SOCKET,SO_SNDBUF,&sendbuf,sizeof(sendbuf));
-getsockopt(sock,SOL_SOCKET,SO_SNDBUF,&sendbuf,(socklen_t*)＆len);
+getsockopt(sock,SOL_SOCKET,SO_SNDBUF,&sendbuf,(socklen_t*)&len);
